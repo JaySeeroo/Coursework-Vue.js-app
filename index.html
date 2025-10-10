@@ -16,11 +16,11 @@
         v-on:click="showCheckOut" 
         :disabled="showProduct && cart.length === 0" 
         class="cart-toggle-btn"
-        >
+      >
         <span class="fa-solid fa-cart-shopping"></span>
         <span class="cart-count">{{ itemInCart }}</span>
         <span class="btn-text">{{ showProduct ? 'View Cart' : 'Back to Lessons' }}</span>
-        </button>
+      </button>
     </header>
 
     <main>
@@ -59,43 +59,47 @@
 
       <div v-else class="cart-page">
         <h2>Your Shopping Cart</h2>
-        <div v-if="cart.length > 0">
-          <div v-for="lesson in cartLessons" :key="lesson.id" class="lesson-card">
-            <i :class="lesson.icon"></i>
-            <h2>{{ lesson.subject }}</h2>
-            <p><strong>Location:</strong> {{ lesson.location }}</p>
-            <p><strong>Price:</strong> ${{ lesson.price }}</p>
-            <p>Quantity: {{ cartCount(lesson.id) }}</p>
-            <button v-on:click="removeFromCart(lesson)">Remove One</button>
-          </div>
-          <div class="cart-summary">
-            <p>Total Items: {{ itemInCart }}</p>
-            <p>Total Price: ${{ totalPrice }}</p>
-          </div>
 
-          <div class="checkout-form">
-            <h3>Checkout</h3>
-            <p>
-              <label for="name">Name:</label>
-              <input id="name" v-model="order.name" placeholder="Enter your name">
-            </p>
-            <p>
-              <label for="phone">Phone:</label>
-              <input id="phone" v-model="order.phone" placeholder="Enter your phone">
-            </p>
-            <button 
-              @click="submitOrder" 
-              :disabled="!isValidName || !isValidPhone"
-            >
-              Checkout
-            </button>
-            <p v-if="orderSubmitted" class="confirmation">
-              ✅ Your order has been submitted successfully!
-            </p>
-          </div>
+        <div v-if="orderSubmitted">
+          <p class="confirmation">✅ Your order has been submitted successfully!</p>
         </div>
+
         <div v-else>
-          <p>Your cart is empty.</p>
+          <div v-if="cart.length > 0">
+            <div v-for="lesson in cartLessons" :key="lesson.id" class="lesson-card">
+              <i :class="lesson.icon"></i>
+              <h2>{{ lesson.subject }}</h2>
+              <p><strong>Location:</strong> {{ lesson.location }}</p>
+              <p><strong>Price:</strong> ${{ lesson.price }}</p>
+              <p>Quantity: {{ cartCount(lesson.id) }}</p>
+              <button v-on:click="removeFromCart(lesson)">Remove One</button>
+            </div>
+            <div class="cart-summary">
+              <p>Total Items: {{ itemInCart }}</p>
+              <p>Total Price: ${{ totalPrice }}</p>
+            </div>
+
+            <div class="checkout-form">
+              <h3>Checkout</h3>
+              <p>
+                <label for="name">Name:</label>
+                <input id="name" v-model="order.name" placeholder="Enter your name">
+              </p>
+              <p>
+                <label for="phone">Phone:</label>
+                <input id="phone" v-model="order.phone" placeholder="Enter your phone">
+              </p>
+              <button 
+                @click="submitOrder" 
+                :disabled="!isValidName || !isValidPhone"
+              >
+                Checkout
+              </button>
+            </div>
+          </div>
+          <div v-else>
+            <p>Your cart is empty.</p>
+          </div>
         </div>
       </div>
     </main>
@@ -157,9 +161,9 @@
         submitOrder() {
           if (this.isValidName && this.isValidPhone) {
             this.orderSubmitted = true;
+            this.cart = [];
             this.order.name = '';
             this.order.phone = '';
-            this.cart = [];
           }
         }
       },
