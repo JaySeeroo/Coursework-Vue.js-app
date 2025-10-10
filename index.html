@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/vue@2.7.8/dist/vue.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+  <link rel="stylesheet" href="styles.css">
+  <title>Lessons App</title>
+</head>
+<body>
+  <div id="app">
+    <h1>{{ message }}</h1>
+
+    <div v-for="lesson in lessons" :key="lesson.id" class="lesson-card">
+      <i :class="lesson.icon"></i>
+      <h2>{{ lesson.subject }}</h2>
+      <p><strong>Location:</strong> {{ lesson.location }}</p>
+      <p><strong>Price:</strong> ${{ lesson.price }}</p>
+      <p><strong>Spaces Left:</strong> {{ lesson.spaces }}</p>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        message: 'Available Lessons',
+        lessons: [
+          { id: 1, subject: "Math", location: "London", price: 50, spaces: 5, icon: "fas fa-square-root-alt" },
+          { id: 2, subject: "English", location: "Manchester", price: 40, spaces: 5, icon: "fas fa-book" },
+          { id: 3, subject: "Science", location: "Birmingham", price: 60, spaces: 5, icon: "fas fa-flask" },
+          { id: 4, subject: "History", location: "Liverpool", price: 45, spaces: 5, icon: "fas fa-landmark" },
+          { id: 5, subject: "Geography", location: "Leeds", price: 55, spaces: 5, icon: "fas fa-globe" },
+          { id: 6, subject: "Art", location: "Bristol", price: 35, spaces: 5, icon: "fas fa-paint-brush" },
+          { id: 7, subject: "Music", location: "Oxford", price: 50, spaces: 5, icon: "fas fa-music" },
+          { id: 8, subject: "Programming", location: "Cambridge", price: 70, spaces: 5, icon: "fas fa-laptop-code" },
+          { id: 9, subject: "Drama", location: "Brighton", price: 40, spaces: 5, icon: "fas fa-theater-masks" },
+          { id: 10, subject: "Sports", location: "Newcastle", price: 30, spaces: 5, icon: "fas fa-football-ball" }
+        ]
+      }
+    });
+  </script>
+</body>
+</html>
