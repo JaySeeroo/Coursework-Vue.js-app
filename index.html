@@ -14,13 +14,13 @@
       <h1>{{ message }}</h1>
       <button 
         v-on:click="showCheckOut" 
-        :disabled="cart.length === 0" 
+        :disabled="showProduct && cart.length === 0" 
         class="cart-toggle-btn"
-      >
+        >
         <span class="fa-solid fa-cart-shopping"></span>
         <span class="cart-count">{{ itemInCart }}</span>
         <span class="btn-text">{{ showProduct ? 'View Cart' : 'Back to Lessons' }}</span>
-      </button>
+        </button>
     </header>
 
     <main>
@@ -72,6 +72,27 @@
             <p>Total Items: {{ itemInCart }}</p>
             <p>Total Price: ${{ totalPrice }}</p>
           </div>
+
+          <div class="checkout-form">
+            <h3>Checkout</h3>
+            <p>
+              <label for="name">Name:</label>
+              <input id="name" v-model="order.name" placeholder="Enter your name">
+            </p>
+            <p>
+              <label for="phone">Phone:</label>
+              <input id="phone" v-model="order.phone" placeholder="Enter your phone">
+            </p>
+            <button 
+              @click="submitOrder" 
+              :disabled="!isValidName || !isValidPhone"
+            >
+              Checkout
+            </button>
+            <p v-if="orderSubmitted" class="confirmation">
+              ✅ Your order has been submitted successfully!
+            </p>
+          </div>
         </div>
         <div v-else>
           <p>Your cart is empty.</p>
@@ -89,6 +110,11 @@
         sortAttribute: 'subject',
         sortOrder: 'asc',
         cart: [],
+        order: {
+          name: '',
+          phone: ''
+        },
+        orderSubmitted: false,
         lessons: [
           { id: 1, subject: "Math", location: "London", price: 50, spaces: 5, icon: "fas fa-square-root-alt" },
           { id: 2, subject: "English", location: "Manchester", price: 40, spaces: 5, icon: "fas fa-book" },
@@ -127,6 +153,14 @@
         },
         showCheckOut() {
           this.showProduct = !this.showProduct;
+        },
+        submitOrder() {
+          if (this.isValidName && this.isValidPhone) {
+            this.orderSubmitted = true;
+            this.order.name = '';
+            this.order.phone = '';
+            this.cart = [];
+          }
         }
       },
       computed: {
@@ -158,6 +192,12 @@
             const lesson = this.lessons.find(l => l.id === id);
             return sum + (lesson ? lesson.price : 0);
           }, 0);
+        },
+        isValidName() {
+          return /^[A-Za-z\s]+$/.test(this.order.name.trim());
+        },
+        isValidPhone() {
+          return /^[0-9]+$/.test(this.order.phone.trim());
         }
       }
     });

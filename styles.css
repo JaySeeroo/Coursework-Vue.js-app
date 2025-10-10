@@ -176,6 +176,79 @@ h1 {
   color: #222;
 }
 
+.checkout-form {
+  margin-top: 30px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  text-align: left;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.checkout-form h3 {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #0077cc;
+}
+
+.checkout-form label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #444;
+}
+
+.checkout-form input {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  border: 1px solid #bbb;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.checkout-form input:focus {
+  border-color: #0077cc;
+  outline: none;
+}
+
+.checkout-form button {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.checkout-form button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.checkout-form button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.confirmation {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 1rem;
+  color: #28a745;
+  font-weight: bold;
+}
+
 @media (max-width: 768px) {
   .lesson-card {
     width: 100%;
@@ -196,5 +269,9 @@ h1 {
 
   .cart-toggle-btn {
     margin-top: 10px;
+  }
+
+  .checkout-form {
+    width: 90%;
   }
 }
