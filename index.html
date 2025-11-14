@@ -5,17 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <script src="https://unpkg.com/vue@2.7.8/dist/vue.js"></script>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
   <title>Lessons App</title>
 </head>
 <body>
   <div id="webstore">
     <header>
       <h1>{{ message }}</h1>
-      <button
-        @click="toggleCart"
-        :disabled="showProduct && cart.length === 0"
-        class="cart-toggle-btn"
-      >
+      <button @click="toggleCart" :disabled="showProduct && cart.length === 0" class="cart-toggle-btn">
         <span class="fa-solid fa-cart-shopping"></span>
         <span class="cart-count">{{ itemInCart }}</span>
         <span class="btn-text">{{ showProduct ? 'View Cart' : 'Back to Lessons' }}</span>
@@ -23,15 +20,14 @@
     </header>
 
     <main>
-      <!-- Lessons list -->
       <div v-if="showProduct">
         <div class="sort-controls">
           <label for="sortAttribute">Sort by:</label>
           <select v-model="sortAttribute" id="sortAttribute">
-            <option value="subject">Subject</option>
+            <option value="title">Title</option>
             <option value="location">Location</option>
             <option value="price">Price</option>
-            <option value="spaces">Spaces</option>
+            <option value="availableInventory">Spaces</option>
           </select>
 
           <label for="sortOrder">Order:</label>
@@ -41,7 +37,7 @@
           </select>
 
           <label for="search">Search:</label>
-          <input id="search" v-model="searchTerm" placeholder="Search subject or location" />
+          <input id="search" v-model="searchTerm" placeholder="Search lessons..." />
         </div>
 
         <div v-if="loading" class="cart-info">Loading lessons...</div>
@@ -49,6 +45,7 @@
 
         <div v-else>
           <div v-for="lesson in filteredAndSortedLessons" :key="lesson._id" class="lesson-card">
+            <i :class="lesson.icon || 'fas fa-book-open'"></i>
             <h2>{{ lesson.subject }}</h2>
             <p><strong>Location:</strong> {{ lesson.location }}</p>
             <p><strong>Price:</strong> ${{ lesson.price }}</p>
@@ -60,7 +57,6 @@
         </div>
       </div>
 
-      <!-- Cart page -->
       <div v-else class="cart-page">
         <h2>Your Shopping Cart</h2>
 
@@ -71,7 +67,8 @@
         <div v-else>
           <div v-if="cart.length > 0">
             <div v-for="lesson in cartLessons" :key="lesson._id" class="lesson-card">
-              <h2>{{ lesson.subject }}</h2>
+              <i :class="lesson.icon || 'fas fa-book-open'"></i>
+              <h2>{{ lesson.title }}</h2>
               <p><strong>Location:</strong> {{ lesson.location }}</p>
               <p><strong>Price:</strong> ${{ lesson.price }}</p>
               <p>Quantity: {{ cartCount(lesson._id) }}</p>
@@ -85,45 +82,35 @@
 
             <div class="checkout-form">
               <h3>Checkout</h3>
-              <p>
-                <label for="name">Name:</label>
-                <input id="name" v-model="order.name" placeholder="Enter your name" />
-              </p>
-              <p>
-                <label for="phone">Phone:</label>
-                <input id="phone" v-model="order.phone" placeholder="Enter your phone" />
-              </p>
-              <button
-                @click="submitOrder"
-                :disabled="!isValidName || !isValidPhone || submitting"
-              >
+              <p><label for="name">Name:</label><input id="name" v-model="order.name" /></p>
+              <p><label for="phone">Phone:</label><input id="phone" v-model="order.phone" /></p>
+              <button @click="submitOrder" :disabled="!isValidName || !isValidPhone || submitting">
                 {{ submitting ? 'Submitting...' : 'Checkout' }}
               </button>
             </div>
           </div>
-          <div v-else>
-            <p>Your cart is empty.</p>
-          </div>
+          <div v-else><p>Your cart is empty.</p></div>
         </div>
       </div>
     </main>
   </div>
 
   <script>
-    const BACKEND_URL = "http://localhost:3000";
+    const BACKEND_URL = "http://localhost:3000"; // Replace with your Render URL when deployed
 
     new Vue({
       el: "#webstore",
       data: {
         message: "Welcome to the Lessons Store!",
         showProduct: true,
-        sortAttribute: "subject",
+        sortAttribute: "title",
         sortOrder: "asc",
         searchTerm: "",
         cart: [],
         order: { name: "", phone: "" },
         orderSubmitted: false,
         lessons: [],
+        searchResults: [],
         loading: false,
         error: "",
         submitting: false,
@@ -131,18 +118,33 @@
       mounted() {
         this.fetchLessons();
       },
+      watch: {
+        searchTerm(newTerm) {
+          this.searchLessons(newTerm);
+        }
+      },
       methods: {
         async fetchLessons() {
           this.loading = true;
-          this.error = "";
           try {
             const res = await fetch(`${BACKEND_URL}/api/lessons`);
-            if (!res.ok) throw new Error("Failed to fetch lessons");
             this.lessons = await res.json();
           } catch (e) {
             this.error = e.message;
           } finally {
             this.loading = false;
+          }
+        },
+        async searchLessons(term) {
+          if (!term.trim()) {
+            this.searchResults = [];
+            return;
+          }
+          try {
+            const res = await fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(term)}`);
+            this.searchResults = await res.json();
+          } catch (e) {
+            this.error = e.message;
           }
         },
         addToCart(lesson) {
@@ -165,7 +167,6 @@
           if (!this.isValidName || !this.isValidPhone || this.cart.length === 0) return;
           this.submitting = true;
           try {
-            // group cart items by lessonId with qty
             const itemsMap = {};
             this.cart.forEach((id) => {
               itemsMap[id] = (itemsMap[id] || 0) + 1;
@@ -192,41 +193,29 @@
             this.cart = [];
             this.order.name = "";
             this.order.phone = "";
-            await this.fetchLessons(); // refresh spaces after successful order
+            await this.fetchLessons();
           } catch (e) {
             alert(e.message);
           } finally {
             this.submitting = false;
           }
-        },
+        }
       },
       computed: {
         itemInCart() {
           return this.cart.length || 0;
         },
         filteredAndSortedLessons() {
-          const term = this.searchTerm.trim().toLowerCase();
-          const filtered = term
-            ? this.lessons.filter(
-                (l) =>
-                  l.subject.toLowerCase().includes(term) ||
-                  l.location.toLowerCase().includes(term)
-              )
-            : this.lessons.slice();
-
+          const base = this.searchResults.length ? this.searchResults : this.lessons;
           const modifier = this.sortOrder === "asc" ? 1 : -1;
 
-          return filtered.sort((a, b) => {
-            if (this.sortAttribute === "spaces") {
-              const aSpaces = a.spaces - this.cartCount(a._id);
-              const bSpaces = b.spaces - this.cartCount(b._id);
-              if (aSpaces < bSpaces) return -1 * modifier;
-              if (aSpaces > bSpaces) return 1 * modifier;
-              return 0;
+          return base.slice().sort((a, b) => {
+            if (this.sortAttribute === "availableInventory") {
+              const aSpaces = a.availableInventory - this.cartCount(a._id);
+              const bSpaces = b.availableInventory - this.cartCount(b._id);
+              return (aSpaces - bSpaces) * modifier;
             }
-            if (a[this.sortAttribute] < b[this.sortAttribute]) return -1 * modifier;
-            if (a[this.sortAttribute] > b[this.sortAttribute]) return 1 * modifier;
-            return 0;
+            return (a[this.sortAttribute] < b[this.sortAttribute] ? -1 : 1) * modifier;
           });
         },
         cartLessons() {
@@ -243,8 +232,8 @@
         },
         isValidPhone() {
           return /^[0-9]+$/.test(this.order.phone.trim());
-        },
-      },
+        }
+      }
     });
   </script>
 </body>
