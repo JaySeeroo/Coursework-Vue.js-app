@@ -68,11 +68,11 @@
           <div v-if="cart.length > 0">
             <div v-for="lesson in cartLessons" :key="lesson._id" class="lesson-card">
               <i :class="lesson.icon || 'fas fa-book-open'"></i>
-              <h2>{{ lesson.title }}</h2>
+              <h2>{{ lesson.subject }}</h2>
               <p><strong>Location:</strong> {{ lesson.location }}</p>
               <p><strong>Price:</strong> ${{ lesson.price }}</p>
               <p>Quantity: {{ cartCount(lesson._id) }}</p>
-              <button @click="removeFromCart(lesson)">Remove One</button>
+              <button @click="removeFromCart(lesson)">Remove</button>
             </div>
 
             <div class="cart-summary">
