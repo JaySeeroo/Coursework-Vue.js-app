@@ -24,10 +24,10 @@
         <div class="sort-controls">
           <label for="sortAttribute">Sort by:</label>
           <select v-model="sortAttribute" id="sortAttribute">
-            <option value="title">Title</option>
+            <option value="subject">Subject</option>
             <option value="location">Location</option>
             <option value="price">Price</option>
-            <option value="availableInventory">Spaces</option>
+            <option value="spaces">Spaces</option>
           </select>
 
           <label for="sortOrder">Order:</label>
@@ -96,145 +96,168 @@
   </div>
 
   <script>
-    const BACKEND_URL = "http://localhost:3000"; // Replace with your Render URL when deployed
+  const BACKEND_URL = "http://localhost:3000"; // Replace with your Render URL when deployed
 
-    new Vue({
-      el: "#webstore",
-      data: {
-        message: "Welcome to the Lessons Store!",
-        showProduct: true,
-        sortAttribute: "title",
-        sortOrder: "asc",
-        searchTerm: "",
-        cart: [],
-        order: { name: "", phone: "" },
-        orderSubmitted: false,
-        lessons: [],
-        searchResults: [],
-        loading: false,
-        error: "",
-        submitting: false,
-      },
-      mounted() {
-        this.fetchLessons();
-      },
-      watch: {
-        searchTerm(newTerm) {
-          this.searchLessons(newTerm);
+  new Vue({
+    el: "#webstore",
+    data: {
+      message: "Welcome to the Lessons Store!",
+      showProduct: true,
+      sortAttribute: "subject",
+      sortOrder: "asc",
+      searchTerm: "",
+      cart: [],
+      order: { name: "", phone: "" },
+      orderSubmitted: false,
+      lessons: [],
+      searchResults: [],
+      loading: false,
+      error: "",
+      submitting: false,
+    },
+    mounted() {
+      this.fetchLessons();
+    },
+    watch: {
+      searchTerm(newTerm) {
+        this.searchLessons(newTerm);
+      }
+    },
+    methods: {
+      async fetchLessons() {
+        this.loading = true;
+        try {
+          const res = await fetch(`${BACKEND_URL}/lessons`);
+          this.lessons = await res.json();
+        } catch (e) {
+          this.error = e.message;
+        } finally {
+          this.loading = false;
         }
       },
-      methods: {
-        async fetchLessons() {
-          this.loading = true;
-          try {
-            const res = await fetch(`${BACKEND_URL}/api/lessons`);
-            this.lessons = await res.json();
-          } catch (e) {
-            this.error = e.message;
-          } finally {
-            this.loading = false;
-          }
-        },
-        async searchLessons(term) {
-          if (!term.trim()) {
-            this.searchResults = [];
-            return;
-          }
-          try {
-            const res = await fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(term)}`);
-            this.searchResults = await res.json();
-          } catch (e) {
-            this.error = e.message;
-          }
-        },
-        addToCart(lesson) {
-          if (this.canAddToCart(lesson)) this.cart.push(lesson._id);
-        },
-        removeFromCart(lesson) {
-          const idx = this.cart.indexOf(lesson._id);
-          if (idx > -1) this.cart.splice(idx, 1);
-        },
-        canAddToCart(lesson) {
-          return lesson.spaces > this.cartCount(lesson._id);
-        },
-        cartCount(lessonId) {
-          return this.cart.filter((id) => id === lessonId).length;
-        },
-        toggleCart() {
-          this.showProduct = !this.showProduct;
-        },
-        async submitOrder() {
-          if (!this.isValidName || !this.isValidPhone || this.cart.length === 0) return;
-          this.submitting = true;
-          try {
-            const itemsMap = {};
-            this.cart.forEach((id) => {
-              itemsMap[id] = (itemsMap[id] || 0) + 1;
-            });
-            const items = Object.entries(itemsMap).map(([lessonId, qty]) => ({
-              lessonId,
-              qty,
-            }));
+      async searchLessons(term) {
+        if (!term.trim()) {
+          this.searchResults = [];
+          return;
+        }
+        try {
+          const res = await fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(term)}`);
+          this.searchResults = await res.json();
+        } catch (e) {
+          this.error = e.message;
+        }
+      },
+      addToCart(lesson) {
+        if (this.canAddToCart(lesson)) this.cart.push(lesson._id);
+      },
+      removeFromCart(lesson) {
+        const idx = this.cart.indexOf(lesson._id);
+        if (idx > -1) this.cart.splice(idx, 1);
+      },
+      canAddToCart(lesson) {
+        return lesson.spaces > this.cartCount(lesson._id);
+      },
+      cartCount(lessonId) {
+        return this.cart.filter((id) => id === lessonId).length;
+      },
+      toggleCart() {
+        this.showProduct = !this.showProduct;
+      },
+      async submitOrder() {
+        if (!this.isValidName || !this.isValidPhone || this.cart.length === 0) return;
+        this.submitting = true;
+        try {
+          const itemsMap = {};
+          this.cart.forEach((id) => {
+            itemsMap[id] = (itemsMap[id] || 0) + 1;
+          });
+          const items = Object.entries(itemsMap).map(([lessonId, qty]) => ({
+            lessonId,
+            qty,
+          }));
 
-            const res = await fetch(`${BACKEND_URL}/api/orders`, {
-              method: "POST",
+          const res = await fetch(`${BACKEND_URL}/orders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: this.order.name.trim(),
+              phone: this.order.phone.trim(),
+              items,
+            }),
+          });
+          if (!res.ok) {
+            const msg = await res.text();
+            throw new Error(msg || "Order submission failed");
+          }
+
+          await this.updateLessonSpaces(items); 
+          this.orderSubmitted = true;
+          this.cart = [];
+          this.order.name = "";
+          this.order.phone = "";
+          await this.fetchLessons();
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          this.submitting = false;
+        }
+      },
+      async updateLessonSpaces(items) {
+        for (const item of items) {
+          try {
+            const res = await fetch(`${BACKEND_URL}/lessons/${item.lessonId}`, {
+              method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: this.order.name.trim(),
-                phone: this.order.phone.trim(),
-                items,
-              }),
+              body: JSON.stringify({ spaces: this.getUpdatedSpaces(item.lessonId, item.qty) })
             });
             if (!res.ok) {
               const msg = await res.text();
-              throw new Error(msg || "Order submission failed");
+              console.warn(`Failed to update ${item.lessonId}: ${msg}`);
             }
-            this.orderSubmitted = true;
-            this.cart = [];
-            this.order.name = "";
-            this.order.phone = "";
-            await this.fetchLessons();
           } catch (e) {
-            alert(e.message);
-          } finally {
-            this.submitting = false;
+            console.error("Update error:", e.message);
           }
         }
       },
-      computed: {
-        itemInCart() {
-          return this.cart.length || 0;
-        },
-        filteredAndSortedLessons() {
-          const base = this.searchResults.length ? this.searchResults : this.lessons;
-          const modifier = this.sortOrder === "asc" ? 1 : -1;
-
-          return base.slice().sort((a, b) => {
-            if (this.sortAttribute === "availableInventory") {
-              const aSpaces = a.availableInventory - this.cartCount(a._id);
-              const bSpaces = b.availableInventory - this.cartCount(b._id);
-              return (aSpaces - bSpaces) * modifier;
-            }
-            return (a[this.sortAttribute] < b[this.sortAttribute] ? -1 : 1) * modifier;
-          });
-        },
-        cartLessons() {
-          return this.lessons.filter((l) => this.cart.includes(l._id));
-        },
-        totalPrice() {
-          return this.cart.reduce((sum, id) => {
-            const lesson = this.lessons.find((l) => l._id === id);
-            return sum + (lesson ? lesson.price : 0);
-          }, 0);
-        },
-        isValidName() {
-          return /^[A-Za-z\s]+$/.test(this.order.name.trim());
-        },
-        isValidPhone() {
-          return /^[0-9]+$/.test(this.order.phone.trim());
-        }
+      getUpdatedSpaces(lessonId, qty) {
+        const lesson = this.lessons.find(l => l._id === lessonId);
+        return lesson ? lesson.spaces - qty : 0;
       }
-    });
-  </script>
+    },
+    computed: {
+      itemInCart() {
+        return this.cart.length || 0;
+      },
+      filteredAndSortedLessons() {
+        const base = this.searchResults.length ? this.searchResults : this.lessons;
+        const modifier = this.sortOrder === "asc" ? 1 : -1;
+
+        return base.slice().sort((a, b) => {
+          if (this.sortAttribute === "spaces") {
+            const aSpaces = a.spaces - this.cartCount(a._id);
+            const bSpaces = b.spaces - this.cartCount(b._id);
+            return (aSpaces - bSpaces) * modifier;
+          }
+          return (a[this.sortAttribute] < b[this.sortAttribute] ? -1 : 1) * modifier;
+        });
+      },
+      cartLessons() {
+        return this.lessons.filter((l) => this.cart.includes(l._id));
+      },
+      totalPrice() {
+        return this.cart.reduce((sum, id) => {
+          const lesson = this.lessons.find((l) => l._id === id);
+          return sum + (lesson ? lesson.price : 0);
+        }, 0);
+      },
+      isValidName() {
+        return /^[A-Za-z\s]+$/.test(this.order.name.trim());
+      },
+      isValidPhone() {
+        return /^[0-9]+$/.test(this.order.phone.trim());
+      }
+    }
+  });
+</script>
 </body>
 </html>
