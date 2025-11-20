@@ -23,6 +23,10 @@ h1 {
   margin-top: 20px;
 }
 
+.cart-toggle-btn i.fa-cart-shopping {
+  font-size: 1.2rem;
+}
+
 /* Container for sort controls (search, dropdowns) */
 .sort-controls {
   display: flex;
@@ -103,19 +107,48 @@ h1 {
 }
 
 /* Wrapper for search icon inside input */
+/* Search label styling */
+.search-label {
+  font-weight: bold;
+  color: #0077cc;
+  font-size: 1rem;
+  margin-right: 8px;
+}
+
+/* Wrapper for icon + input */
 .search-wrapper {
   position: relative;
   display: inline-block;
 }
 
+/* Search icon */
 .search-wrapper .fa-search {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: #888;
-  font-size: 0.9rem;
+  font-size: 1rem;
   pointer-events: none;
+}
+
+/* Search input styling */
+.search-input {
+  padding: 10px 14px 10px 40px; /* space for icon */
+  border-radius: 25px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+  width: 240px;
+  background: linear-gradient(135deg, #fdfdfd, #f4f6f9);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #0077cc;
+  outline: none;
+  box-shadow: 0 0 8px rgba(0,119,204,0.4);
+  background: #fff;
 }
 
 /* Enhanced search input with icon padding */
