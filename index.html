@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="styles.css" />
   <title>Lessons App</title>
   <style>
-    /* Optional: make broken images obvious */
     img.lesson-img { object-fit: cover; border-radius: 6px; background: #f3f3f3; }
   </style>
 </head>
@@ -49,7 +48,6 @@
 
         <div v-else>
           <div v-for="lesson in filteredAndSortedLessons" :key="lesson._id" class="lesson-card">
-            <!-- Use full backend URL + image path -->
             <img
               :src="BACKEND_URL + lesson.image"
               :alt="lesson.subject + ' image'"
@@ -100,14 +98,30 @@
               <p>Total Price: ${{ totalPrice }}</p>
             </div>
 
-            <div class="checkout-form">
-              <h3>Checkout</h3>
-              <p><label for="name">Name:</label><input id="name" v-model="order.name" /></p>
-              <p><label for="phone">Phone:</label><input id="phone" v-model="order.phone" /></p>
-              <button @click="submitOrder" :disabled="!isValidName || !isValidPhone || submitting">
-                {{ submitting ? 'Submitting...' : 'Checkout' }}
-              </button>
-            </div>
+           <div class="checkout-form">
+            <h3>Checkout</h3>
+            <p>
+              <label for="name">Name:</label>
+              <input id="name" v-model="order.name" />
+              <span v-if="order.name && !isValidName" class="error-msg">
+                Name must contain only letters and spaces.
+              </span>
+            </p>
+            <p>
+              <label for="phone">Phone:</label>
+              <input id="phone" v-model="order.phone" />
+              <span v-if="order.phone && !isValidPhone" class="error-msg">
+                Phone number must be exactly 8 digits.
+              </span>
+            </p>
+            <p>
+              <label for="address">Address:</label>
+              <input id="address" v-model="order.address" />
+            </p>
+            <button @click="submitOrder" :disabled="!isValidName || !isValidPhone || submitting">
+              {{ submitting ? 'Submitting...' : 'Checkout' }}
+            </button>
+          </div>
           </div>
           <div v-else><p>Your cart is empty.</p></div>
         </div>
@@ -128,7 +142,7 @@
       sortOrder: "asc",
       searchTerm: "",
       cart: [],
-      order: { name: "", phone: "" },
+      order: { name: "", phone: "", address: "" },
       orderSubmitted: false,
       lessons: [],
       searchResults: [],
@@ -204,6 +218,7 @@
             body: JSON.stringify({
               name: this.order.name.trim(),
               phone: this.order.phone.trim(),
+              address: this.order.address.trim(),
               items,
             }),
           });
@@ -246,7 +261,6 @@
         return lesson ? lesson.spaces - qty : 0;
       },
       onImgError(evt, lesson) {
-        // Provide a graceful fallback if an image fails to load
         evt.target.src = this.fallbackImg;
         console.warn(`Image failed to load: ${lesson.subject} (${lesson.image})`);
       }
@@ -283,7 +297,7 @@
         return /^[A-Za-z\s]+$/.test(this.order.name.trim());
       },
       isValidPhone() {
-        return /^[0-9]+$/.test(this.order.phone.trim());
+        return /^[0-9]{8}$/.test(this.order.phone.trim()); // exactly 8 digits
       }
     }
   });
