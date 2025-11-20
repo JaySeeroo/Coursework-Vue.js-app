@@ -6,14 +6,12 @@
   <script src="https://unpkg.com/vue@2.7.8/dist/vue.js"></script>
   <link rel="stylesheet" href="styles.css" />
   <title>Lessons App</title>
-  <style>
-    img.lesson-img { object-fit: cover; border-radius: 6px; background: #f3f3f3; }
-  </style>
 </head>
 <body>
   <div id="webstore">
     <header>
       <h1>{{ message }}</h1>
+      <!-- Toggle between lessons and cart -->
       <button @click="toggleCart" :disabled="showProduct && cart.length === 0" class="cart-toggle-btn">
         <span class="fa-solid fa-cart-shopping"></span>
         <span class="cart-count">{{ itemInCart }}</span>
@@ -22,8 +20,9 @@
     </header>
 
     <main>
-      <!-- LESSON LIST -->
+      <!-- Lesson List -->
       <div v-if="showProduct">
+        <!-- Sorting and search controls -->
         <div class="sort-controls">
           <label for="sortAttribute">Sort by:</label>
           <select v-model="sortAttribute" id="sortAttribute">
@@ -40,52 +39,47 @@
           </select>
 
           <label for="search">Search:</label>
-          <input id="search" v-model="searchTerm" placeholder="Search lessons..." />
+          <div class="search-wrapper">
+            <i class="fa fa-search"></i>
+            <input id="search" v-model="searchTerm" placeholder="Search lessons..." />
+          </div>
         </div>
 
+        <!-- Loading / error states -->
         <div v-if="loading" class="cart-info">Loading lessons...</div>
         <div v-else-if="error" class="cart-info">{{ error }}</div>
 
+        <!-- Lessons list -->
         <div v-else>
-          <div v-for="lesson in filteredAndSortedLessons" :key="lesson._id" class="lesson-card">
-            <img
-              :src="BACKEND_URL + lesson.image"
-              :alt="lesson.subject + ' image'"
-              width="60"
-              height="60"
-              class="lesson-img"
-              @error="onImgError($event, lesson)"
-            >
-            <h2>{{ lesson.subject }}</h2>
-            <p><strong>Location:</strong> {{ lesson.location }}</p>
-            <p><strong>Price:</strong> ${{ lesson.price }}</p>
-            <p><strong>Spaces Left:</strong> {{ lesson.spaces - cartCount(lesson._id) }}</p>
+          <div class="lesson-list">
+            <div v-for="lesson in filteredAndSortedLessons" :key="lesson._id" class="lesson-card">
+              <img :src="BACKEND_URL + lesson.image" :alt="lesson.subject + ' image'" width="60" height="60">
+              <h2>{{ lesson.subject }}</h2>
+              <p><strong>Location:</strong> {{ lesson.location }}</p>
+              <p><strong>Price:</strong> ${{ lesson.price }}</p>
+              <p><strong>Spaces Left:</strong> {{ lesson.spaces - cartCount(lesson._id) }}</p>
 
-            <button @click="addToCart(lesson)" v-if="canAddToCart(lesson)">Add to Cart</button>
-            <button disabled v-else>Add to Cart</button>
+              <!-- Add to cart button -->
+              <button @click="addToCart(lesson)" v-if="canAddToCart(lesson)">Add to Cart</button>
+              <button disabled v-else>Add to Cart</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- CART PAGE -->
+      <!-- Cart Page -->
       <div v-else class="cart-page">
         <h2>Your Shopping Cart</h2>
 
+        <!-- Confirmation after order -->
         <div v-if="orderSubmitted">
           <p class="confirmation">✅ Your order has been submitted successfully!</p>
         </div>
 
         <div v-else>
+          <!-- Cart items -->
           <div v-if="cart.length > 0">
             <div v-for="lesson in cartLessons" :key="lesson._id" class="lesson-card">
-              <img
-                :src="BACKEND_URL + lesson.image"
-                :alt="lesson.subject + ' image'"
-                width="60"
-                height="60"
-                class="lesson-img"
-                @error="onImgError($event, lesson)"
-              >
+              <img :src="BACKEND_URL + lesson.image" :alt="lesson.subject + ' image'" width="60" height="60">
               <h2>{{ lesson.subject }}</h2>
               <p><strong>Location:</strong> {{ lesson.location }}</p>
               <p><strong>Price:</strong> ${{ lesson.price }}</p>
@@ -93,35 +87,37 @@
               <button @click="removeFromCart(lesson)">Remove</button>
             </div>
 
+            <!-- Cart summary -->
             <div class="cart-summary">
               <p>Total Items: {{ itemInCart }}</p>
               <p>Total Price: ${{ totalPrice }}</p>
             </div>
 
-           <div class="checkout-form">
-            <h3>Checkout</h3>
-            <p>
-              <label for="name">Name:</label>
-              <input id="name" v-model="order.name" />
-              <span v-if="order.name && !isValidName" class="error-msg">
-                Name must contain only letters and spaces.
-              </span>
-            </p>
-            <p>
-              <label for="phone">Phone:</label>
-              <input id="phone" v-model="order.phone" />
-              <span v-if="order.phone && !isValidPhone" class="error-msg">
-                Phone number must be exactly 8 digits.
-              </span>
-            </p>
-            <p>
-              <label for="address">Address:</label>
-              <input id="address" v-model="order.address" />
-            </p>
-            <button @click="submitOrder" :disabled="!isValidName || !isValidPhone || submitting">
-              {{ submitting ? 'Submitting...' : 'Checkout' }}
-            </button>
-          </div>
+            <!-- Checkout form -->
+            <div class="checkout-form">
+              <h3>Checkout</h3>
+              <p>
+                <label for="name">Name:</label>
+                <input id="name" v-model="order.name" />
+                <span v-if="order.name && !isValidName" class="error-msg">
+                  Name must contain only letters and spaces.
+                </span>
+              </p>
+              <p>
+                <label for="phone">Phone:</label>
+                <input id="phone" v-model="order.phone" />
+                <span v-if="order.phone && !isValidPhone" class="error-msg">
+                  Phone number must be exactly 8 digits.
+                </span>
+              </p>
+              <p>
+                <label for="address">Address:</label>
+                <input id="address" v-model="order.address" />
+              </p>
+              <button @click="submitOrder" :disabled="!isValidName || !isValidPhone || submitting">
+                {{ submitting ? 'Submitting...' : 'Checkout' }}
+              </button>
+            </div>
           </div>
           <div v-else><p>Your cart is empty.</p></div>
         </div>
@@ -130,40 +126,38 @@
   </div>
 
   <script>
-  const BACKEND_URL = "http://localhost:3000"; 
-
   new Vue({
     el: "#webstore",
     data: {
+      BACKEND_URL: "http://localhost:3000", // Backend base URL
       message: "Welcome to the Lessons Store!",
-      BACKEND_URL: "http://localhost:3000",
-      showProduct: true,
+      showProduct: true, // Toggle between lessons and cart
       sortAttribute: "subject",
       sortOrder: "asc",
       searchTerm: "",
       cart: [],
-      order: { name: "", phone: "", address: "" },
+      order: { name: "", phone: "", address: "" }, // Checkout fields
       orderSubmitted: false,
       lessons: [],
       searchResults: [],
       loading: false,
       error: "",
       submitting: false,
-      fallbackImg: "data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='100%' height='100%' fill='%23eee'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' fill='%23999'>No image</text></svg>"
     },
     mounted() {
-      this.fetchLessons();
+      this.fetchLessons(); // Load lessons when app starts
     },
     watch: {
       searchTerm(newTerm) {
-        this.searchLessons(newTerm);
+        this.searchLessons(newTerm); // Trigger search on input change
       }
     },
     methods: {
+      // Fetch all lessons
       async fetchLessons() {
         this.loading = true;
         try {
-          const res = await fetch(`${BACKEND_URL}/lessons`);
+          const res = await fetch(`${this.BACKEND_URL}/lessons`);
           this.lessons = await res.json();
         } catch (e) {
           this.error = e.message;
@@ -171,18 +165,20 @@
           this.loading = false;
         }
       },
+      // Search lessons by term
       async searchLessons(term) {
         if (!term.trim()) {
           this.searchResults = [];
           return;
         }
         try {
-          const res = await fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(term)}`);
+          const res = await fetch(`${this.BACKEND_URL}/search?q=${encodeURIComponent(term)}`);
           this.searchResults = await res.json();
         } catch (e) {
           this.error = e.message;
         }
       },
+      // Cart operations
       addToCart(lesson) {
         if (this.canAddToCart(lesson)) this.cart.push(lesson._id);
       },
@@ -199,6 +195,7 @@
       toggleCart() {
         this.showProduct = !this.showProduct;
       },
+      // Submit order to backend
       async submitOrder() {
         if (!this.isValidName || !this.isValidPhone || this.cart.length === 0) return;
         this.submitting = true;
@@ -212,7 +209,7 @@
             qty,
           }));
 
-          const res = await fetch(`${BACKEND_URL}/orders`, {
+          const res = await fetch(`${this.BACKEND_URL}/orders`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -227,48 +224,25 @@
             throw new Error(msg || "Order submission failed");
           }
 
-          await this.updateLessonSpaces(items);
           this.orderSubmitted = true;
           this.cart = [];
           this.order.name = "";
           this.order.phone = "";
+          this.order.address = "";
           await this.fetchLessons();
         } catch (e) {
           alert(e.message);
         } finally {
           this.submitting = false;
         }
-      },
-      async updateLessonSpaces(items) {
-        for (const item of items) {
-          try {
-            const res = await fetch(`${BACKEND_URL}/lessons/${item.lessonId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ spaces: this.getUpdatedSpaces(item.lessonId, item.qty) })
-            });
-            if (!res.ok) {
-              const msg = await res.text();
-              console.warn(`Failed to update ${item.lessonId}: ${msg}`);
-            }
-          } catch (e) {
-            console.error("Update error:", e.message);
-          }
-        }
-      },
-      getUpdatedSpaces(lessonId, qty) {
-        const lesson = this.lessons.find(l => l._id === lessonId);
-        return lesson ? lesson.spaces - qty : 0;
-      },
-      onImgError(evt, lesson) {
-        evt.target.src = this.fallbackImg;
-        console.warn(`Image failed to load: ${lesson.subject} (${lesson.image})`);
       }
     },
     computed: {
+      // Cart item count
       itemInCart() {
         return this.cart.length || 0;
       },
+      // Filter + sort lessons
       filteredAndSortedLessons() {
         const base = this.searchResults.length ? this.searchResults : this.lessons;
         const modifier = this.sortOrder === "asc" ? 1 : -1;
@@ -284,20 +258,24 @@
           return 0;
         });
       },
+      // Lessons currently in cart
       cartLessons() {
         return this.lessons.filter((l) => this.cart.includes(l._id));
       },
+      // Total price of cart
       totalPrice() {
         return this.cart.reduce((sum, id) => {
           const lesson = this.lessons.find((l) => l._id === id);
           return sum + (lesson ? lesson.price : 0);
         }, 0);
       },
+      // Validation: name must be letters/spaces
       isValidName() {
         return /^[A-Za-z\s]+$/.test(this.order.name.trim());
       },
+      // Validation: phone must be exactly 8 digits
       isValidPhone() {
-        return /^[0-9]{8}$/.test(this.order.phone.trim()); // exactly 8 digits
+        return /^[0-9]{8}$/.test(this.order.phone.trim());
       }
     }
   });
