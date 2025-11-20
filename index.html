@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <script src="https://unpkg.com/vue@2.7.8/dist/vue.js"></script>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
   <title>Lessons App</title>
+  <style>
+    /* Optional: make broken images obvious */
+    img.lesson-img { object-fit: cover; border-radius: 6px; background: #f3f3f3; }
+  </style>
 </head>
 <body>
   <div id="webstore">
@@ -20,6 +23,7 @@
     </header>
 
     <main>
+      <!-- LESSON LIST -->
       <div v-if="showProduct">
         <div class="sort-controls">
           <label for="sortAttribute">Sort by:</label>
@@ -45,7 +49,15 @@
 
         <div v-else>
           <div v-for="lesson in filteredAndSortedLessons" :key="lesson._id" class="lesson-card">
-            <i :class="lesson.icon || 'fas fa-book-open'"></i>
+            <!-- Use full backend URL + image path -->
+            <img
+              :src="BACKEND_URL + lesson.image"
+              :alt="lesson.subject + ' image'"
+              width="60"
+              height="60"
+              class="lesson-img"
+              @error="onImgError($event, lesson)"
+            >
             <h2>{{ lesson.subject }}</h2>
             <p><strong>Location:</strong> {{ lesson.location }}</p>
             <p><strong>Price:</strong> ${{ lesson.price }}</p>
@@ -57,6 +69,7 @@
         </div>
       </div>
 
+      <!-- CART PAGE -->
       <div v-else class="cart-page">
         <h2>Your Shopping Cart</h2>
 
@@ -67,7 +80,14 @@
         <div v-else>
           <div v-if="cart.length > 0">
             <div v-for="lesson in cartLessons" :key="lesson._id" class="lesson-card">
-              <i :class="lesson.icon || 'fas fa-book-open'"></i>
+              <img
+                :src="BACKEND_URL + lesson.image"
+                :alt="lesson.subject + ' image'"
+                width="60"
+                height="60"
+                class="lesson-img"
+                @error="onImgError($event, lesson)"
+              >
               <h2>{{ lesson.subject }}</h2>
               <p><strong>Location:</strong> {{ lesson.location }}</p>
               <p><strong>Price:</strong> ${{ lesson.price }}</p>
@@ -96,12 +116,13 @@
   </div>
 
   <script>
-  const BACKEND_URL = "http://localhost:3000"; // Replace with your Render URL when deployed
+  const BACKEND_URL = "http://localhost:3000"; 
 
   new Vue({
     el: "#webstore",
     data: {
       message: "Welcome to the Lessons Store!",
+      BACKEND_URL: "http://localhost:3000",
       showProduct: true,
       sortAttribute: "subject",
       sortOrder: "asc",
@@ -114,6 +135,7 @@
       loading: false,
       error: "",
       submitting: false,
+      fallbackImg: "data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='100%' height='100%' fill='%23eee'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' fill='%23999'>No image</text></svg>"
     },
     mounted() {
       this.fetchLessons();
@@ -190,7 +212,7 @@
             throw new Error(msg || "Order submission failed");
           }
 
-          await this.updateLessonSpaces(items); 
+          await this.updateLessonSpaces(items);
           this.orderSubmitted = true;
           this.cart = [];
           this.order.name = "";
@@ -222,6 +244,11 @@
       getUpdatedSpaces(lessonId, qty) {
         const lesson = this.lessons.find(l => l._id === lessonId);
         return lesson ? lesson.spaces - qty : 0;
+      },
+      onImgError(evt, lesson) {
+        // Provide a graceful fallback if an image fails to load
+        evt.target.src = this.fallbackImg;
+        console.warn(`Image failed to load: ${lesson.subject} (${lesson.image})`);
       }
     },
     computed: {
@@ -238,7 +265,9 @@
             const bSpaces = b.spaces - this.cartCount(b._id);
             return (aSpaces - bSpaces) * modifier;
           }
-          return (a[this.sortAttribute] < b[this.sortAttribute] ? -1 : 1) * modifier;
+          if (a[this.sortAttribute] < b[this.sortAttribute]) return -1 * modifier;
+          if (a[this.sortAttribute] > b[this.sortAttribute]) return 1 * modifier;
+          return 0;
         });
       },
       cartLessons() {
@@ -258,6 +287,6 @@
       }
     }
   });
-</script>
+  </script>
 </body>
 </html>
