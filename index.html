@@ -49,17 +49,18 @@
         <div v-if="loading" class="cart-info">Loading lessons...</div>
         <div v-else-if="error" class="cart-info">{{ error }}</div>
 
-        <!-- Lessons list -->
         <div v-else>
-          <div class="lesson-list">
+          <div v-if="noResults" class="cart-info">
+            No lessons found for "{{ searchTerm }}".
+          </div>
+          <!-- Lesson lIst -->
+          <div v-else class="lesson-list">
             <div v-for="lesson in filteredAndSortedLessons" :key="lesson._id" class="lesson-card">
               <img :src="BACKEND_URL + lesson.image" :alt="lesson.subject + ' image'" width="60" height="60">
               <h2>{{ lesson.subject }}</h2>
               <p><strong>Location:</strong> {{ lesson.location }}</p>
               <p><strong>Price:</strong> ${{ lesson.price }}</p>
               <p><strong>Spaces Left:</strong> {{ lesson.spaces - cartCount(lesson._id) }}</p>
-
-              <!-- Add to cart button -->
               <button @click="addToCart(lesson)" v-if="canAddToCart(lesson)">Add to Cart</button>
               <button disabled v-else>Add to Cart</button>
             </div>
@@ -140,6 +141,7 @@
       orderSubmitted: false,
       lessons: [],
       searchResults: [],
+      noResults: false,
       loading: false,
       error: "",
       submitting: false,
@@ -166,18 +168,23 @@
         }
       },
       // Search lessons by term
-      async searchLessons(term) {
-        if (!term.trim()) {
-          this.searchResults = [];
-          return;
-        }
-        try {
-          const res = await fetch(`${this.BACKEND_URL}/search?q=${encodeURIComponent(term)}`);
-          this.searchResults = await res.json();
-        } catch (e) {
-          this.error = e.message;
-        }
-      },
+     async searchLessons(term) {
+      if (!term.trim()) {
+        // Empty search → reset results and flag
+        this.searchResults = [];
+        this.noResults = false;
+        return;
+      }
+      try {
+        const res = await fetch(`${this.BACKEND_URL}/search?q=${encodeURIComponent(term)}`);
+        const results = await res.json();
+        this.searchResults = results;
+        this.noResults = results.length === 0; // flag if nothing found
+      } catch (e) {
+        this.error = e.message;
+      }
+    },
+
       // Cart operations
       addToCart(lesson) {
         if (this.canAddToCart(lesson)) this.cart.push(lesson._id);
