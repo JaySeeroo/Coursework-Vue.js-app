@@ -12,7 +12,6 @@
   <div id="webstore">
     <header>
       <h1>{{ message }}</h1>
-      <!-- Toggle between lessons and cart -->
       <button @click="toggleCart" :disabled="showProduct && cart.length === 0" class="cart-toggle-btn">
         <span class="fa-solid fa-cart-shopping"></span>
         <span class="cart-count">{{ itemInCart }}</span>
@@ -21,7 +20,7 @@
     </header>
 
     <main>
-      <!-- Lesson List -->
+      <!-- Lesson List Page -->
       <div v-if="showProduct">
         <!-- Sorting and search controls -->
         <div class="sort-controls">
@@ -40,18 +39,19 @@
           </select>
 
           <label for="search" class="search-label">Search:</label>
-            <div class="search-wrapper">
-              <i class="fa fa-search"></i>
-              <input
-                id="search"
-                v-model="searchTerm"
-                type="search"
-                placeholder="Search lessons..."
-                class="search-input" />
-            </div>
+          <div class="search-wrapper">
+            <i class="fa fa-search"></i>
+            <input
+              id="search"
+              v-model="searchTerm"
+              @input="onSearchInput"
+              type="search"
+              placeholder="Search lessons..."
+              class="search-input" />
+          </div>
         </div>
 
-        <!-- Loading / error states -->
+        <!-- Loading / Error / No results messages -->
         <div v-if="loading" class="cart-info">Loading lessons...</div>
         <div v-else-if="error" class="cart-info">{{ error }}</div>
 
@@ -59,7 +59,8 @@
           <div v-if="noResults" class="cart-info">
             No lessons found for "{{ searchTerm }}".
           </div>
-          <!-- Lesson lIst -->
+
+          <!-- List of lessons -->
           <div v-else class="lesson-list">
             <div v-for="lesson in filteredAndSortedLessons" :key="lesson._id" class="lesson-card">
               <img :src="BACKEND_URL + lesson.image" :alt="lesson.subject + ' image'" width="60" height="60">
@@ -78,7 +79,7 @@
       <div v-else class="cart-page">
         <h2>Your Shopping Cart</h2>
 
-        <!-- Confirmation after order -->
+        <!-- Confirmation after order submission -->
         <div v-if="orderSubmitted">
           <p class="confirmation">✅ Your order has been submitted successfully!</p>
         </div>
@@ -127,6 +128,7 @@
               </button>
             </div>
           </div>
+
           <div v-else><p>Your cart is empty.</p></div>
         </div>
       </div>
@@ -137,52 +139,41 @@
   new Vue({
     el: "#webstore",
 
-    // ---------------------------------------------------------
+    // ------------------------------
     // Application State
-    // ---------------------------------------------------------
+    // ------------------------------
     data: {
-      BACKEND_URL:"https://lessons-api-nw81.onrender.com",
+      BACKEND_URL:"https://lessons-api-nw81.onrender.com", // Backend API URL
       message: "Welcome to the Lessons Store!",
-      showProduct: true,                 // Toggles between lessons list and cart
-      sortAttribute: "subject",          // Current sorting attribute
-      sortOrder: "asc",                  // asc | desc
-      searchTerm: "",                    // Search input value
-      cart: [],                          // Array of lesson IDs currently in cart
-      order: { name: "", phone: "", address: "" },  // Checkout form data
-      orderSubmitted: false,             // Display confirmation message
-      lessons: [],                       // Full lessons list from backend
-      searchResults: [],                 // Filtered lessons returned from search
-      noResults: false,                  // Flag: search returned no matches
-      loading: false,                    // Display loading state
-      error: "",                         // Holds error messages
-      submitting: false,                 // Checkout submission state
+      showProduct: true,                 // Toggle between lessons and cart page
+      sortAttribute: "subject",          // Sorting attribute for lesson list
+      sortOrder: "asc",                  // Sorting order: asc / desc
+      searchTerm: "",                    // Current search input
+      cart: [],                          // Array of lesson _id in cart
+      order: { name: "", phone: "", address: "" }, // Checkout form input
+      orderSubmitted: false,             // Flag to show order confirmation
+      lessons: [],                       // List of all lessons from backend
+      searchResults: null,               // Search results after full-text search
+      noResults: false,                  // Flag if search returns no lessons
+      loading: false,                    // Loading state for fetching lessons
+      error: "",                         // Error message
+      submitting: false,                 // Flag to prevent multiple checkout clicks
+      searchTimeout: null                // Timeout ID for debounce search
     },
 
-    // ---------------------------------------------------------
-    // Lifecycle Hook: Load lessons on startup
-    // ---------------------------------------------------------
+    // ------------------------------
+    // Lifecycle Hooks
+    // ------------------------------
     mounted() {
-      this.fetchLessons();
+      this.fetchLessons();               // Fetch lessons on page load
     },
 
-    // ---------------------------------------------------------
-    // Watchers
-    // ---------------------------------------------------------
-    watch: {
-      // Real-time search as user types
-      searchTerm(newTerm) {
-        this.searchLessons(newTerm);
-      }
-    },
-
-    // ---------------------------------------------------------
-    // Methods: Data fetching, cart handling, checkout, etc.
-    // ---------------------------------------------------------
+    // ------------------------------
+    // Methods
+    // ------------------------------
     methods: {
 
-      // -------------------------------------------------------
-      // Fetch all lessons from backend 
-      // -------------------------------------------------------
+      // Fetch all lessons from backend
       async fetchLessons() {
         this.loading = true;
         try {
@@ -195,15 +186,23 @@
         }
       },
 
-      // -------------------------------------------------------
-      // Full-text search 
-      // - Runs on every keystroke
-      // - Returns lessons whose subject, location, price or space match
-      // -------------------------------------------------------
+      // Handle search input with debounce
+      onSearchInput() {
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+          if (this.searchTerm.trim() === "") {
+            this.searchResults = null;   
+            this.noResults = false;
+            return;
+          }
+          this.searchLessons(this.searchTerm);
+        }, 300);
+      },
+
+      // Full-text search API call
       async searchLessons(term) {
-        // Empty input to reset search results
         if (!term.trim()) {
-          this.searchResults = [];
+          this.searchResults = null;  
           this.noResults = false;
           return;
         }
@@ -211,7 +210,6 @@
         try {
           const res = await fetch(`${this.BACKEND_URL}/search?q=${encodeURIComponent(term)}`);
           const results = await res.json();
-
           this.searchResults = results;
           this.noResults = results.length === 0;
         } catch (e) {
@@ -219,18 +217,14 @@
         }
       },
 
-      // -------------------------------------------------------
-      // CART FUNCTIONS
-      // -------------------------------------------------------
-
-      // Add one lesson to cart
+      // Add lesson to cart
       addToCart(lesson) {
         if (this.canAddToCart(lesson)) {
           this.cart.push(lesson._id);
         }
       },
 
-      // Remove one instance of a lesson from cart
+      // Remove lesson from cart
       removeFromCart(lesson) {
         const idx = this.cart.indexOf(lesson._id);
         if (idx > -1) {
@@ -238,52 +232,40 @@
         }
       },
 
-      // Check if lesson still has available space left
+      // Check if lesson can be added (spaces available)
       canAddToCart(lesson) {
         return lesson.spaces > this.cartCount(lesson._id);
       },
 
-      // Count how many times a lesson appears in the cart
+      // Count quantity of a lesson in the cart
       cartCount(id) {
         return this.cart.filter(x => x === id).length;
       },
 
-      // Toggle lesson list to shopping cart view
+      // Toggle between lessons and cart page
       toggleCart() {
         this.showProduct = !this.showProduct;
       },
 
-      // -------------------------------------------------------
-      // SUBMIT ORDER
-      // Steps:
-      // 1. POST order data to backend (/orders)
-      // 2. For each lesson, update space via PUT (/lessons/:id)
-      // 3. Clear cart & refresh lessons
-      // -------------------------------------------------------
+      // Submit order to backend
       async submitOrder() {
-        // Prevent submission unless all fields valid
         if (!this.isValidName || !this.isValidPhone || this.cart.length === 0) return;
 
         this.submitting = true;
 
         try {
-          // -------------------------------
-          // Build a map { lessonId: qty }
-          // -------------------------------
+          // Group cart items by lessonId
           const itemsMap = {};
           this.cart.forEach(id => {
             itemsMap[id] = (itemsMap[id] || 0) + 1;
           });
 
-          // Convert map to array for backend
           const items = Object.entries(itemsMap).map(([lessonId, qty]) => ({
             lessonId,
             qty,
           }));
 
-          // ---------------------------------------------------
-          // 1. SUBMIT ORDER (POST)
-          // ---------------------------------------------------
+          // POST order
           const res = await fetch(`${this.BACKEND_URL}/orders`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -295,15 +277,12 @@
             }),
           });
 
-          // If backend returns error message
           if (!res.ok) {
             const msg = await res.text();
             throw new Error(msg || "Order submission failed");
           }
 
-          // ---------------------------------------------------
-          // 2. UPDATE LESSON SPACES (PUT) 
-          // ---------------------------------------------------
+          // Update lesson spaces after order
           for (const item of items) {
             const lesson = this.lessons.find(l => l._id === item.lessonId);
             if (lesson) {
@@ -317,15 +296,12 @@
             }
           }
 
-          // ---------------------------------------------------
-          // Successfully submitted
-          // ---------------------------------------------------
+          // Reset cart and order form
           this.orderSubmitted = true;
           this.cart = [];
           this.order = { name: "", phone: "", address: "" };
 
-          // Reload updated lessons from backend
-          await this.fetchLessons();
+          await this.fetchLessons(); // Refresh lessons
 
         } catch (e) {
           alert(e.message);
@@ -335,45 +311,43 @@
       }
     },
 
-    // ---------------------------------------------------------
-    // Computed Properties: Sorting, filtering, validation, totals
-    // ---------------------------------------------------------
+    // ------------------------------
+    // Computed Properties
+    // ------------------------------
     computed: {
 
-      // Number of items currently in cart
+      // Total items in cart
       itemInCart() {
         return this.cart.length || 0;
       },
 
-      // Return lessons sorted and matching search
+      // Filter and sort lessons
       filteredAndSortedLessons() {
         const base = this.searchTerm.trim()
-          ? this.searchResults   
+          ? this.searchResults || []
           : this.lessons;
 
         const modifier = this.sortOrder === "asc" ? 1 : -1;
 
         return base.slice().sort((a, b) => {
-          // Custom handling for "spaces" since cart temporarily reduces them
           if (this.sortAttribute === "spaces") {
             const aSpaces = a.spaces - this.cartCount(a._id);
             const bSpaces = b.spaces - this.cartCount(b._id);
             return (aSpaces - bSpaces) * modifier;
           }
 
-          // Standard sorting for subject, price, location
           if (a[this.sortAttribute] < b[this.sortAttribute]) return -1 * modifier;
           if (a[this.sortAttribute] > b[this.sortAttribute]) return 1 * modifier;
           return 0;
         });
       },
 
-      // Lessons currently present in the cart
+      // Lessons present in cart (unique)
       cartLessons() {
         return this.lessons.filter(l => this.cart.includes(l._id));
       },
 
-      // Total price of all items in cart
+      // Total price of cart items
       totalPrice() {
         return this.cart.reduce((sum, id) => {
           const lesson = this.lessons.find(l => l._id === id);
@@ -381,12 +355,12 @@
         }, 0);
       },
 
-      // Validate name letters + spaces only
+      // Validate name (letters + spaces only)
       isValidName() {
         return /^[A-Za-z\s]+$/.test(this.order.name.trim());
       },
 
-      // Validate phone exactly 8 digits
+      // Validate phone (exactly 8 digits)
       isValidPhone() {
         return /^[0-9]{8}$/.test(this.order.phone.trim());
       }
